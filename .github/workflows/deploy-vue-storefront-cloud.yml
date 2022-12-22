@@ -13,10 +13,10 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: "18.x"
+          node-version: "16.x"
 
       - name: Build and publish docker image
-        uses: elgohr/Publish-Docker-Github-Action@master
+        uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: ${{ secrets.PROJECT_NAME }}-storefrontcloud-io/vue-storefront:${{ github.sha }}
           registry: ${{ secrets.DOCKER_REGISTRY_URL || 'registry.vuestorefront.cloud' }}
@@ -32,7 +32,7 @@ jobs:
           NPM_REGISTRY: "https://registrynpm.storefrontcloud.io"
 
       - name: Build and publish docker image (middleware)
-        uses: elgohr/Publish-Docker-Github-Action@master
+        uses: elgohr/Publish-Docker-Github-Action@v5
         with:
           name: ${{ secrets.PROJECT_NAME }}-storefrontcloud-io/vue-storefront-middleware:${{ github.sha }}
           registry: ${{ secrets.DOCKER_REGISTRY_URL || 'registry.vuestorefront.cloud' }}
@@ -46,27 +46,25 @@ jobs:
           NPM_PASS: ${{ secrets.NPM_PASS }}
           NPM_USER: ${{ secrets.NPM_USER }}
           NPM_REGISTRY: "https://registrynpm.storefrontcloud.io"
-  
-  deployment-app:
+
+
+  deployment:
     runs-on: ubuntu-latest
     needs: build
     steps:
-    - name: Deploy
+
+    - name: Deploy App
       uses: fjogeleit/http-request-action@v1
       with:
-        url: '${{ secrets.CLOUD_API_BASE_URL }}/cloud/instances/${{ secrets.PROJECT_NAME }}-${{ secrets.CLOUD_REGION }}-gcp-storefrontcloud-io/deploy'
+        url: '${{ secrets.PLATFORM_API_URL }}/cloud/instances/${{ secrets.PROJECT_NAME }}-${{ secrets.CLOUD_REGION }}-gcp-storefrontcloud-io/deploy'
         method: 'PATCH'
         customHeaders: '{"Content-Type":"application/json"}'
         data: '{ "cloudUserId": "${{ secrets.CLOUD_USERNAME }}", "cloudUserPassword": "${{ secrets.CLOUD_PASSWORD }}", "dockerImageHash": "${{ github.sha }}" }'
 
-  deployment-middleware:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-    - name: Deploy
+    - name: Deploy Middleware
       uses: fjogeleit/http-request-action@v1
       with:
-        url: '${{ secrets.CLOUD_API_BASE_URL }}/cloud/instances/${{ secrets.PROJECT_NAME }}-${{ secrets.CLOUD_REGION }}-gcp-storefrontcloud-io/deploy'
+        url: '${{ secrets.PLATFORM_API_URL }}/cloud/instances/${{ secrets.PROJECT_NAME }}-${{ secrets.CLOUD_REGION }}-gcp-storefrontcloud-io/deploy'
         method: 'PATCH'
         customHeaders: '{"Content-Type":"application/json"}'
-        data: '{ "middleware": true, "cloudUserId": "${{ secrets.CLOUD_USERNAME }}", "cloudUserPassword": "${{ secrets.CLOUD_PASSWORD }}", "dockerImageHash": "${{ github.sha }}" }'
+        data: '{ "middleware":true, "cloudUserId":"${{ secrets.CLOUD_USERNAME }}", "cloudUserPassword":"${{ secrets.CLOUD_PASSWORD }}", "dockerImageHash":"${{ github.sha }}", "middlewareData":{ "path":"/api/", "port":3000, "has_base_path":false } }'
